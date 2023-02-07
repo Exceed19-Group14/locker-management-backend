@@ -6,26 +6,33 @@ import math
 
 app = FastAPI()
 
+
 def calculate_payment(dto: LockerTransaction) -> int:
     pass
+
 
 def is_locker_available(dto: CreateLockerTransaction) -> bool:
     pass
 
+
 @app.get('/')
 def root():
     return {"msg": "welcome to locker reservation system"}
+
 
 @app.post('/locker/deposit')
 def deposit_item(dto: CreateLockerTransaction):
     doc = dto.dict()
     doc['initial_date'] = datetime.now()
     doc['withdraw_date'] = None
+    collection.insert_one(doc)
+
 
 @app.get('/locker/payment/{nisit_id}')
 def show_payment(nisit_id: str):
     return {"total payment": collection.find_one({"nisit_id": nisit_id, "is_payment": False},
                                                  {"price": 1})}
+
 
 @app.put('/locker/withdraw/{nisit_id}')
 def withdraw_item(nisit_id: str):
@@ -40,8 +47,5 @@ def withdraw_item(nisit_id: str):
     if (actual_withdraw_time > order.expect_date):
         total_payment += 20 * math.ceil(
             (actual_withdraw_time - order.expect_date).seconds/600)
-    collection.update_one(order, {"withdraw_date": datetime.now(), 
+    collection.update_one(order, {"withdraw_date": datetime.now(),
                                   "price": total_payment})
-    
-
-
