@@ -8,12 +8,19 @@ class CreateLockerTransaction(BaseModel):
     locker_number: int
     expected_date: datetime
     store: Dict[str, List[str]]
-    
+
     @validator("locker_number")
-    def check_locker_number(self, locker_number: int):
+    def check_locker_number(cls, locker_number: int):
         if locker_number not in range(1, 7):
             raise ValueError("locker number not in range of 6")
         return locker_number
+
+    @validator('expected_date')
+    def check_expected_date(cls, d: datetime):
+        if d <= datetime.now():
+            raise ValueError("Expected date can't be less than Now")
+        return d
+
 
 class LockerTransaction(CreateLockerTransaction):
     initial_date: datetime

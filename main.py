@@ -23,6 +23,14 @@ def calculate_fee(expected_date: datetime, withdraw_date: datetime) -> int:
             (withdraw_date - expected_date).seconds/600)
     return 0
 
+def check_nisit(nisit_id: str) -> bool:
+    count = collection.count_documents({
+        "nisit_id": nisit_id,
+        "is_payment": False
+    })
+    
+    return  count > 0
+
 
 @app.get('/')
 def root():
@@ -31,6 +39,10 @@ def root():
 
 @app.post('/locker/deposit')
 def deposit_item(dto: CreateLockerTransaction):
+    if check_nisit(dto.nisit_id):
+        raise HTTPException(400 , {
+            "error": "Nisit is reserved"
+        })
     doc = dto.dict()
     doc['initial_date'] = datetime.now()
     doc['withdraw_date'] = None
