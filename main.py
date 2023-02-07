@@ -6,7 +6,7 @@ import math
 
 app = FastAPI()
 
-lockers = [i for i in range(1, 7)]
+lockers = list(range(1, 7))
 
 
 def calculate_payment(expected_date: datetime, initial_date: datetime) -> int:
@@ -23,13 +23,14 @@ def calculate_fee(expected_date: datetime, withdraw_date: datetime) -> int:
             (withdraw_date - expected_date).seconds/600)
     return 0
 
+
 def check_nisit(nisit_id: str) -> bool:
     count = collection.count_documents({
         "nisit_id": nisit_id,
         "is_payment": False
     })
-    
-    return  count > 0
+
+    return count > 0
 
 
 @app.get('/')
@@ -40,10 +41,14 @@ def root():
 @app.post('/locker/deposit')
 def deposit_item(dto: CreateLockerTransaction):
     if check_nisit(dto.nisit_id):
-        raise HTTPException(400 , {
+        raise HTTPException(400, {
             "error": "Nisit is reserved"
         })
     doc = dto.dict()
+    if not locker_info(dto.locker_number).is_avaliable:
+        raise HTTPException(400, {
+            "error": "This lock is reserved"
+        })
     doc['initial_date'] = datetime.now()
     doc['withdraw_date'] = None
     doc['price'] = None
@@ -63,6 +68,11 @@ def locker_info(id: int):
     })
 
     return Locker(locker_number=id, is_avaliable=not (count > 0))
+
+
+@app.get('/locker')
+def check_locker():
+    return [locker_info(i) for i in lockers]
 
 
 @app.get('/locker/payment/{nisit_id}')
@@ -98,6 +108,7 @@ def pay_transaction(nisit_id: str, dto: Payment):
 @app.put('/locker/withdraw/{nisit_id}')
 def withdraw_item(nisit_id: str):
     order = collection.find_one({"nisit_id": nisit_id, "is_payment": False})
+    print(order)
     actual_withdraw_time = datetime.now()
     total_payment = calculate_payment(
         order['expected_date'], order['initial_date']) + calculate_fee(order['expected_date'], actual_withdraw_time)
