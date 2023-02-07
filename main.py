@@ -10,9 +10,19 @@ app = FastAPI()
 def calculate_payment(dto: LockerTransaction) -> int:
     pass
 
+def calculate_payment(expected_date: datetime, initial_date: datetime) -> int:
+    if (expected_date - initial_date > timedelta(hours=2)):
+        return 5 * math.ceil(
+            (expected_date - initial_date - timedelta(hours=2)).seconds/3600)
+    else:
+        return 0
 
-def is_locker_available(dto: CreateLockerTransaction) -> bool:
-    pass
+
+def calculate_fee(expected_date: datetime, withdraw_date: datetime) -> int:
+    if (withdraw_date > expected_date):
+        return 20 * math.ceil(
+            (withdraw_date - expected_date).seconds/600)
+    return 0
 
 
 @app.get('/')
@@ -52,14 +62,11 @@ def show_payment(nisit_id: str):
 def withdraw_item(nisit_id: str):
     order = collection.find_one({"nisit_id": nisit_id, "is_payment": False})
     actual_withdraw_time = datetime.now()
-    if (order.expect_date - order.initial_date > timedelta(hours=2)):
-        total_payment = 5 * math.ceil(
-            (order.expect_date - order.initial_date - timedelta(hours=2)).seconds/3600)
-    else:
-        total_payment = 0
+    total_payment = calculate_payment(
+        order['expected_date'], order['initial_date']) + calculate_fee(order['expected_date'], actual_withdraw_time)
     # add fee
-    if (actual_withdraw_time > order.expect_date):
-        total_payment += 20 * math.ceil(
-            (actual_withdraw_time - order.expect_date).seconds/600)
-    collection.update_one(order, {"withdraw_date": datetime.now(),
-                                  "price": total_payment})
+
+    collection.update_one(order, {"$set": {"withdraw_date": actual_withdraw_time,
+                                  "price": total_payment}})
+
+    return TotalPayment(nisit_id=nisit_id, total_payment=total_payment)
