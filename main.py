@@ -13,8 +13,7 @@ def calculate_payment(expected_date: datetime, initial_date: datetime) -> int:
     if (expected_date - initial_date > timedelta(hours=2)):
         return 5 * math.ceil(
             (expected_date - initial_date - timedelta(hours=2)).seconds/3600)
-    else:
-        return 0
+    return 0
 
 
 def calculate_fee(expected_date: datetime, withdraw_date: datetime) -> int:
@@ -101,7 +100,6 @@ def withdraw_item(nisit_id: str):
     actual_withdraw_time = datetime.now()
     total_payment = calculate_payment(
         order['expected_date'], order['initial_date']) + calculate_fee(order['expected_date'], actual_withdraw_time)
-    # add fee
 
     collection.update_one(order, {"$set": {"withdraw_date": actual_withdraw_time,
                                   "price": total_payment}})
