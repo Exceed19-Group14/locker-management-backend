@@ -28,6 +28,20 @@ def deposit_item(dto: CreateLockerTransaction):
     collection.insert_one(doc)
 
 
+@app.get('/locker/{id}')
+def locker_info(id: int):
+    if not id in lockers:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, {
+            "error": "Locker must be more than or equal 1 and less than or equal 6"
+        })
+    count = collection.count_documents({
+        "locker_number": id,
+        "is_payment": False
+    })
+
+    return Locker(locker_number=id, is_avaliable=not (count > 0))
+
+
 @app.get('/locker/payment/{nisit_id}')
 def show_payment(nisit_id: str):
     return {"total payment": collection.find_one({"nisit_id": nisit_id, "is_payment": False},
